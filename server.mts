@@ -13,15 +13,19 @@ app.prepare().then(() => {
   const httpServer = createServer(handle);
   const io = new Server(httpServer);
   io.on("connection", (socket) => {
-    console.log(`User connected : ${socket}`);
+    console.log(`User connected : ${socket.id}`);
     socket.on(
       "join-room",
-      ({ room, username }: { room: string; username: string }) => {
-        socket.join(room)
-        console.log(`Room : ${room} , User connected : ${username}`)
-        socket.to(room).emit("use_joined",`${username} joined to ${room}`)
+      ({ room, userName }: { room: string; userName: string }) => {
+        socket.join(room);
+        console.log(`Room : ${room} , User connected : ${userName}`);
+        socket.to(room).emit("user_joined", `${userName} joined to ${room}`);
       }
     );
+    socket.on("message", ({ message, room ,sender }) => {
+      console.log(`Message from : ${sender} in room ${room} : ${message} `)
+      socket.to(room).emit("message", { sender, message });
+    });
   });
   io.on("disconnet", (socket) => {
     console.log(`User Leave : ${socket}`);

@@ -1,7 +1,8 @@
 "use client";
 import { ChatForm } from "@/components/ChatForm";
 import { ChatMessage } from "@/components/ChatMessage";
-import { useState } from "react";
+import { socket } from "@/lib/socketClient";
+import { useEffect, useState } from "react";
 
 export default function Home() {
   const [room, setroom] = useState("");
@@ -9,9 +10,32 @@ export default function Home() {
   const [message, setMessage] = useState<{ sender: string; message: string }[]>(
     []
   );
+  useEffect(() => {
+    socket.on("message", (data) => {
+      setMessage((prev) => [...prev, data]);
+    });
+    socket.on("user_joined", (message: string) => {
+      setMessage((prev) => [...prev, { sender: "system", message }]);
+    });
+    return () => {
+      socket.off("user_joined");
+      socket.off("message");
+    };
+  }, []);
+  const handleJoinRoom = () => {
+    if (room && userName) {
+      socket.emit("join-room", { room, userName });
+      setIsJoined(true);
+    }
+  };
   const [userName, setuserName] = useState("");
   const handleSendMessage = (message: string) => {
-    console.log(`Message Envoyé : ${message}`);
+    const data = { room, message, sender: userName };
+    setMessage((prev) => [
+      ...prev,
+      { sender: userName, message },
+    ]);
+    socket.emit('message',data)
   };
   return (
     <div className="flex mt-24 w-full justify-center">
@@ -37,7 +61,12 @@ export default function Home() {
               onChange={(e) => setroom(e.target.value)}
             />
           </div>
-          <button className="px-4 py-2 text-white rounded-lg bg-blue-500 mt-2" onClick={() => setIsJoined(true)}>Join</button>
+          <button
+            className="px-4 py-2 text-white rounded-lg bg-blue-500 mt-2"
+            onClick={handleJoinRoom}
+          >
+            Join
+          </button>
         </div>
       ) : (
         <div className="w-full max-w-3xl mx-auto">
